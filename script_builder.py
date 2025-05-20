@@ -8,6 +8,7 @@ from tkinter import messagebox, filedialog, ttk
 import logging
 import queue
 import ctypes
+import pynput.mouse as pmouse
 
 # ----------------- Xử lý DPI ---------------------
 def set_process_dpi_awareness():
@@ -1220,8 +1221,6 @@ class ScriptBuilder(tk.Toplevel):
         btn_play.pack(side=tk.LEFT, padx=5)
         btn_save_rec = tk.Button(frm_rec, text="Lưu (Save)", command=save_recording)
         btn_save_rec.pack(side=tk.LEFT, padx=5)
-        btn_clear = tk.Button(frm_rec, text="Clear", command=clear_recording)
-        btn_clear.pack(side=tk.LEFT, padx=5)
 
         btn_open_file = tk.Button(frm_rec, text="Mở file đã ghi", command=open_recorded_file)
         btn_open_file.pack(side=tk.LEFT, padx=5)

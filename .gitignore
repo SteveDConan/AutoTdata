@@ -50,3 +50,12 @@ Desktop.ini
 # Logs
 *.log
 logs/ 
+# Bỏ qua file cấu hình nhạy cảm
+.env
+config.js
+secret.json
+
+# Nếu nằm trong thư mục con
+**/.env
+**/config.js
+**/secret.json

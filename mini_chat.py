@@ -158,68 +158,51 @@ def toggle_mini_chat_pause():
 
 def create_mini_chat():
     global mini_chat_win, mini_chat_text, mini_chat_entry, TARGET_LANG_SELECTION, MY_LANG_SELECTION, DPI_ENABLED, mini_chat_pause_button
+
     if root is None:
-        print("Consolog [ERROR]: root chưa được set trong mini chat. Gọi set_root(root) trước khi tạo mini chat.")
+        print("Consolog [ERROR]: root chưa được set. Gọi set_root(root) trước khi tạo mini chat.")
         return
+
     mini_chat_win = tk.Toplevel(root)
     mini_chat_win.title("Mini Chat")
+    mini_chat_win.geometry("600x400")
 
-    # Consolog [MODIFIED]: Cập nhật vị trí cửa sổ mini chat với margin 10px bên phải và dưới màn hình
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    width = 530
-    height = 350
-    x = screen_width - width - 10  # cách mép phải 10px
-    y = screen_height - height - 10  # cách mép dưới 10px
-    mini_chat_win.geometry(f"{width}x{height}+{x}+{y}")
-    mini_chat_win.attributes("-topmost", True)
-
-    # Consolog: Thêm menu chọn ngôn ngữ cho Mini Chat và checkbox DPI
+    # Menu frame
     menu_frame = tk.Frame(mini_chat_win)
-    menu_frame.pack(side=tk.TOP, fill=tk.X, pady=5)
-    
-    tk.Label(menu_frame, text="Ngôn ngữ của tôi:").pack(side=tk.LEFT, padx=5)
-    my_lang_var = tk.StringVar(value=MY_LANG_SELECTION)
-    # Consolog [CHANGED-BRAZIL]: Bổ sung thêm "pt" cho ngôn ngữ Brazil vào danh sách ngôn ngữ
-    my_lang_options = ["en", "vi", "fr", "es", "de", "zh", "km", "pt"]
-    def update_my_lang(val):
-        global MY_LANG_SELECTION
-        MY_LANG_SELECTION = val
-        print(f"Consolog: Đã cập nhật ngôn ngữ của tôi: {MY_LANG_SELECTION}")
-    my_lang_menu = tk.OptionMenu(menu_frame, my_lang_var, *my_lang_options, command=update_my_lang)
-    my_lang_menu.pack(side=tk.LEFT, padx=5)
-    
-    tk.Label(menu_frame, text="Ngôn ngữ của đối phương:").pack(side=tk.LEFT, padx=5)
-    target_lang_var = tk.StringVar(value=TARGET_LANG_SELECTION)
-    # Consolog [CHANGED-BRAZIL]: Bổ sung thêm "pt" cho ngôn ngữ Brazil vào danh sách ngôn ngữ
-    target_lang_options = ["vi", "en", "fr", "es", "de", "zh", "km", "pt"]
-    def update_target_lang(val):
-        global TARGET_LANG_SELECTION
-        TARGET_LANG_SELECTION = val
-        print(f"Consolog: Đã cập nhật ngôn ngữ của đối phương: {TARGET_LANG_SELECTION}")
-    target_lang_menu = tk.OptionMenu(menu_frame, target_lang_var, *target_lang_options, command=update_target_lang)
-    target_lang_menu.pack(side=tk.LEFT, padx=5)
+    menu_frame.pack(side=tk.TOP, fill=tk.X, padx=5, pady=5)
 
-    # Consolog: Thêm checkbox cho DPI
-    dpi_var = tk.BooleanVar(value=DPI_ENABLED)
-    def update_dpi():
-        global DPI_ENABLED
-        DPI_ENABLED = dpi_var.get()
-        print(f"Consolog: Cập nhật DPI_ENABLED thành: {DPI_ENABLED}")
-    dpi_checkbox = tk.Checkbutton(menu_frame, text="DPI", variable=dpi_var, command=update_dpi)
-    dpi_checkbox.pack(side=tk.LEFT, padx=5)
-    
-    # Consolog: Thêm nút lưu cài đặt ngôn ngữ và DPI
-    save_button = tk.Button(menu_frame, text="Save", command=save_config)
-    save_button.pack(side=tk.LEFT, padx=5)
+    # Thêm nút Refresh để cập nhật nội dung chat
+    btn_refresh = tk.Button(menu_frame, text="Refresh", command=lambda: on_telegram_user_click(get_correct_telegram_hwnd()))
+    btn_refresh.pack(side=tk.LEFT, padx=5)
 
-    # Khung hiển thị tin nhắn
-    mini_chat_text = tk.Text(mini_chat_win, height=15, width=60, state=tk.DISABLED)
-    mini_chat_text.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+    # Thêm nút Clear để xóa nội dung chat
+    btn_clear = tk.Button(menu_frame, text="Clear", command=clear_mini_chat)
+    btn_clear.pack(side=tk.LEFT, padx=5)
+
+    # Thêm nút Pause/Resume
+    mini_chat_pause_button = tk.Button(menu_frame, text="Pause", command=toggle_mini_chat_pause)
+    mini_chat_pause_button.pack(side=tk.LEFT, padx=5)
+
+    # Thêm label hiển thị user đang chat
+    global current_user_label
+    current_user_label = tk.Label(menu_frame, text="No user selected")
+    current_user_label.pack(side=tk.LEFT, padx=5)
+
+    # Khung hiển thị tin nhắn với thanh cuộn
+    frame_text = tk.Frame(mini_chat_win)
+    frame_text.pack(side=tk.TOP, fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+    scrollbar = tk.Scrollbar(frame_text)
+    scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    mini_chat_text = tk.Text(frame_text, height=15, width=60, state=tk.DISABLED, yscrollcommand=scrollbar.set)
+    mini_chat_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    scrollbar.config(command=mini_chat_text.yview)
 
     # Khung nhập tin nhắn
     frame_input = tk.Frame(mini_chat_win)
-    frame_input.pack(side=tk.BOTTOM, fill=tk.X)
+    frame_input.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
 
     mini_chat_entry = tk.Entry(frame_input, width=50)
     mini_chat_entry.pack(side=tk.LEFT, padx=5, pady=5)
@@ -227,20 +210,14 @@ def create_mini_chat():
 
     btn_send = tk.Button(frame_input, text="Send", command=send_mini_chat_message)
     btn_send.pack(side=tk.LEFT, padx=5)
-    
-    # Consolog: Thêm nút Pause/Resume bên cạnh nút Send để tạm dừng/khôi phục mini chat
-    mini_chat_pause_button = tk.Button(frame_input, text="Pause", command=toggle_mini_chat_pause)
-    mini_chat_pause_button.pack(side=tk.LEFT, padx=5)
-    print("Consolog: Đã thêm nút Pause/Resume vào mini chat.")
-    
-    # Consolog: Thêm nút "Clear" bên cạnh nút "Send" để xóa toàn bộ nội dung của mini chat
-    btn_clear = tk.Button(frame_input, text="Clear", command=clear_mini_chat)
-    btn_clear.pack(side=tk.LEFT, padx=5)
-    print("Consolog: Đã thêm nút 'Clear' vào mini chat.")
-    print("Consolog: Đã bổ sung ngôn ngữ Trung Quốc ('zh'), Cambodia ('km'), Brazil ('pt') và checkbox DPI vào menu của Mini Chat.")
 
-    # [ADDED - INACTIVITY]: Khởi động thread theo dõi thời gian không hoạt động của mini chat (chỉ áp dụng cho mini chat)
+    # Khởi động thread theo dõi thời gian không hoạt động
     threading.Thread(target=mini_chat_inactivity_monitor, daemon=True).start()
+
+    # Khởi động thread theo dõi sự kiện click
+    threading.Thread(target=mini_chat_monitor, daemon=True).start()
+
+    print("Consolog: Mini Chat đã được khởi tạo với các tính năng mới.")
 
 def clear_mini_chat():
     global mini_chat_text
@@ -538,7 +515,7 @@ def capture_window(hwnd):
     print("Consolog: Đang gọi PrintWindow với flag 0 để capture toàn bộ cửa sổ.")
     result = user32.PrintWindow(hwnd, srcdc, 0)
     if result != 1:
-        print("Consolog [WARNING]: PrintWindow không thành công hoặc chỉ chụp được 1 phần.")
+        print("Consolog [WARNING]: PrintWindow không thành công")
     
     class BITMAPINFOHEADER(ctypes.Structure):
         _fields_ = [
@@ -597,7 +574,7 @@ def send_mini_chat_message():
     if mini_chat_entry is None:
         return
     # [ADDED - INACTIVITY]: Cập nhật thời gian hoạt động của mini chat khi có thao tác (send message)
-    mini_chat_last_active_time = time.time()
+    mini_chat_last_active_time = time.sleep(0.1)
     # Nếu mini chat đang ở trạng thái tạm dừng do inactivity, tự động khôi phục
     if mini_chat_paused:
         mini_chat_paused = False
@@ -806,7 +783,7 @@ class WINDOWPLACEMENT(ctypes.Structure):
 
 def create_mini_chatgpt():
     """Tạo widget mini chatgpt với kích thước bằng ô input của mini chat, bao gồm nút Send, Zoom và Quit.
-    Widget này luôn ở “đít” (bottom) của cửa sổ Telegram, tự động cập nhật vị trí khi cửa sổ di chuyển.
+    Widget này luôn ở "đít" (bottom) của cửa sổ Telegram, tự động cập nhật vị trí khi cửa sổ di chuyển.
     """
     global mini_chatgpt_win, mini_chatgpt_entry, mini_chatgpt_pause_button
     if root is None:
@@ -814,7 +791,7 @@ def create_mini_chatgpt():
         return
     mini_chatgpt_win = tk.Toplevel(root)
     mini_chatgpt_win.title("Mini ChatGPT Widget")
-    # Sử dụng overrideredirect để bỏ frame tiêu đề (nếu muốn hiển thị giao diện “nhẹ”)
+    # Sử dụng overrideredirect để bỏ frame tiêu đề (nếu muốn hiển thị giao diện "nhẹ")
     mini_chatgpt_win.overrideredirect(True)
     mini_chatgpt_win.attributes("-topmost", False)
     
@@ -990,3 +967,89 @@ def toggle_mini_chat_zoom():
 # ========================
 # KẾT THÚC: Các thay đổi đã bổ sung theo yêu cầu
 # ========================
+
+# Biến toàn cục để lưu nội dung chat hiện tại
+current_chat_content = []
+
+def get_telegram_chat_content(hwnd):
+    """Lấy nội dung chat từ cửa sổ Telegram"""
+    try:
+        chat_control = win32gui.FindWindowEx(hwnd, None, "RichEdit20W", None)
+        if not chat_control:
+            return []
+            
+        text_length = win32gui.SendMessage(chat_control, win32con.WM_GETTEXTLENGTH, 0, 0)
+        buffer = win32gui.PyMakeBuffer(text_length + 1)
+        win32gui.SendMessage(chat_control, win32con.WM_GETTEXT, text_length + 1, buffer)
+        text = buffer[:text_length].decode('utf-16le')
+        
+        return [line for line in text.split('\r\n') if line.strip()]
+    except Exception as e:
+        print(f"Consolog [ERROR]: Lỗi lấy nội dung chat: {e}")
+        return []
+
+def update_mini_chat_content():
+    """Cập nhật nội dung Mini Chat"""
+    global current_chat_content, mini_chat_text
+    if mini_chat_text is None:
+        return
+        
+    mini_chat_text.config(state=tk.NORMAL)
+    mini_chat_text.delete("1.0", tk.END)
+    
+    for line in current_chat_content:
+        mini_chat_text.insert(tk.END, line + "\n")
+    
+    mini_chat_text.see(tk.END)
+    mini_chat_text.config(state=tk.DISABLED)
+
+def get_current_chat_user(hwnd):
+    """Lấy tên user đang chat"""
+    try:
+        user_control = win32gui.FindWindowEx(hwnd, None, "Static", None)
+        if not user_control:
+            return "Unknown User"
+            
+        text_length = win32gui.SendMessage(user_control, win32con.WM_GETTEXTLENGTH, 0, 0)
+        buffer = win32gui.PyMakeBuffer(text_length + 1)
+        win32gui.SendMessage(user_control, win32con.WM_GETTEXT, text_length + 1, buffer)
+        text = buffer[:text_length].decode('utf-16le')
+        
+        return text.strip() or "Unknown User"
+    except Exception as e:
+        print(f"Consolog [ERROR]: Lỗi lấy tên user: {e}")
+        return "Unknown User"
+
+def on_telegram_user_click(hwnd):
+    """Xử lý khi click vào user trong Telegram"""
+    global current_chat_content, current_user_label
+    current_chat_content = get_telegram_chat_content(hwnd)
+    user_name = get_current_chat_user(hwnd)
+    
+    if current_user_label:
+        current_user_label.config(text=f"Chatting with: {user_name}")
+    
+    update_mini_chat_content()
+    print(f"Consolog: Đã cập nhật nội dung chat từ Telegram với user {user_name}")
+
+def mini_chat_monitor():
+    global mini_chat_paused, mini_chat_last_active_time
+    while True:
+        if not mini_chat_paused:
+            hwnd = get_correct_telegram_hwnd()
+            if hwnd:
+                if win32api.GetAsyncKeyState(win32con.VK_LBUTTON) < 0:
+                    x, y = win32api.GetCursorPos()
+                    if is_click_on_telegram_user(hwnd, x, y):
+                        on_telegram_user_click(hwnd)
+        time.sleep(0.1)
+
+def is_click_on_telegram_user(hwnd, x, y):
+    """Kiểm tra click có nằm trong vùng hiển thị user không"""
+    try:
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        user_area_width = (right - left) // 3
+        return left <= x <= left + user_area_width and top <= y <= bottom
+    except Exception as e:
+        print(f"Consolog [ERROR]: Lỗi kiểm tra vị trí click: {e}")
+        return False
